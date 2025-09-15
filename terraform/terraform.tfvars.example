@@ -1,0 +1,26 @@
+# AWS Configuration
+aws_region  = "eu-central-1"
+aws_profile = "your-aws-profile-name"
+
+# Project Configuration
+project_name = "booking-system"
+environment  = "prod"
+
+# Cognito Configuration
+cognito_user_pool_name   = "booking-system-users"
+cognito_app_client_name  = "booking-system-web"
+
+# DynamoDB Configuration
+dynamodb_table_name = "booking-system"
+
+# Lambda Configuration
+lambda_function_name = "booking-system-api"
+lambda_runtime      = "python3.9"
+lambda_timeout      = 15
+lambda_memory_size  = 256
+
+# S3 Configuration
+s3_bucket_name = "booking-system-frontend"
+
+# API Gateway Configuration
+api_gateway_name = "booking-system-api"

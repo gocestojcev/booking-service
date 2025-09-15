@@ -1,0 +1,29 @@
+# Terraform requirements for Lambda deployment
+# This file is used by the Lambda deployment process
+
+# Core FastAPI dependencies
+fastapi==0.68.0
+starlette==0.14.2
+pydantic==1.8.2
+uvicorn==0.24.0
+
+# AWS dependencies
+boto3==1.35.76
+mangum==0.19.0
+
+# Authentication
+python-jose==3.3.0
+ecdsa==0.19.0
+rsa==4.9
+pyasn1==0.6.0
+
+# HTTP requests
+requests==2.31.0
+urllib3==1.26.18
+certifi==2023.7.22
+charset-normalizer==3.3.2
+idna==3.4
+
+# Environment and utilities
+python-dotenv==1.0.0
+typing_extensions==4.8.0
