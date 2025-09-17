@@ -3,6 +3,8 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f5f5f5;
   min-height: 100vh;
+  opacity: 1;
+  transition: opacity 0.3s ease;
 }
 
 .calendar-header {
@@ -373,6 +375,8 @@
   min-height: 40px;
   border: 1px solid #ffffff;
   box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 .room-cell:hover {
@@ -383,9 +387,82 @@
 
 /* Disable parent cell hover effect when split cells are present */
 .room-cell:has(.cell-half):hover {
+  background-color: transparent !important;
   transform: none;
   box-shadow: none;
   z-index: auto;
+}
+
+/* Remove background from parent cells that contain split cells but keep borders */
+.room-cell:has(.cell-half) {
+  background-color: transparent !important;
+  border: 1px solid #ffffff !important;
+}
+
+/* Override specific day type backgrounds when split cells are present */
+.room-cell.check-in-day:has(.cell-half) {
+  background: transparent !important;
+  border: 1px solid #ffffff !important;
+}
+
+.room-cell.check-out-day:has(.cell-half) {
+  background: transparent !important;
+  border: 1px solid #ffffff !important;
+}
+
+.room-cell.check-in-day.check-out-day:has(.cell-half) {
+  background: transparent !important;
+  border: 1px solid #ffffff !important;
+}
+
+/* Split cell styles */
+.cell-half {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.cell-half:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+
+.left-half {
+  border-right: 1px solid #ffffff;
+  border-radius: 0 20px 20px 0;
+}
+
+.right-half {
+  border-left: 1px solid #ffffff;
+  border-radius: 20px 0 0 20px;
+}
+
+.left-half.booked {
+  background-color: #ff6b6b;
+  color: white;
+  border-radius: 0 20px 20px 0;
+}
+
+.right-half.booked {
+  background-color: #eb5b67;
+  color: white;
+  border-radius: 20px 0 0 20px;
+}
+
+.cell-half.right-half.available {
+  background-color: #9bd6a9 !important;
+  color: #155724 !important;
+}
+
+.room-cell .cell-half.right-half.available {
+  background-color: #9bd6a9 !important;
+  color: #155724 !important;
 }
 
 .room-cell.available {
@@ -396,6 +473,11 @@
 
 .room-cell.available:hover {
   background-color: #c3e6cb !important;
+}
+
+/* Disable available hover for split cells */
+.room-cell.available:has(.cell-half):hover {
+  background-color: transparent !important;
 }
 
 .room-cell.booked {
@@ -409,6 +491,11 @@
   background-color: #f5c6cb !important;
 }
 
+/* Disable booked hover for split cells */
+.room-cell.booked:has(.cell-half):hover {
+  background-color: transparent !important;
+}
+
 /* Check-in day: half green, half red with check-in arrow */
 .room-cell.check-in-day {
   background: linear-gradient(to right, #d4edda 50%, #eb5b67 50%);
@@ -420,6 +507,11 @@
   background: linear-gradient(to right, #c3e6cb 50%, #f5c6cb 50%) !important;
 }
 
+/* Disable check-in day hover for split cells */
+.room-cell.check-in-day:has(.cell-half):hover {
+  background: transparent !important;
+}
+
 /* Check-out day: half red, half green with check-out arrow */
 .room-cell.check-out-day {
   background: linear-gradient(to right, #eb5b67 50%, #d4edda 50%);
@@ -429,6 +521,11 @@
 
 .room-cell.check-out-day:hover {
   background: linear-gradient(to right, #eb5b67 50%, #c3e6cb 50%) !important;
+}
+
+/* Disable check-out day hover for split cells */
+.room-cell.check-out-day:has(.cell-half):hover {
+  background: transparent !important;
 }
 
 /* Transition day: both check-in and check-out on same day */
@@ -444,7 +541,7 @@
 
 /* Disable transition day hover effect when split cells are present */
 .room-cell.check-in-day.check-out-day:has(.cell-half):hover {
-  background: #eb5b67 !important;
+  background: transparent !important;
 }
 
 /* Split cell styles */
@@ -458,6 +555,9 @@
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s ease;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .cell-half.left-half {
@@ -473,12 +573,18 @@
 
 .cell-half.right-half {
   right: 0;
-  background: #eb5b67;
+  background: #9bd6a9 !important;
   border-left: solid 1px #ffffff;
 }
 
 .cell-half.right-half.available {
-  background: #9bd6a9;
+  background: #9bd6a9 !important;
+  border-left: solid 1px #ffffff;
+}
+
+.cell-half.right-half.booked {
+  background-color: #eb5b67 !important;
+  color: white !important;
   border-left: solid 1px #ffffff;
 }
 
@@ -675,14 +781,16 @@
   justify-content: center;
   align-items: center;
   height: 200px;
-  background-color: white;
+  background-color: #f5f5f5;
   margin: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
 }
 
 .loading-spinner {
-  font-size: 18px;
-  color: #2c5aa0;
+  font-size: 16px;
+  color: #666;
   font-weight: bold;
 }

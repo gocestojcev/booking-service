@@ -90,7 +90,7 @@ def get_reservations(hotel_id: str, start_date: str, end_date: str):
     try:
         # Get all rooms for the hotel first
         rooms = get_rooms(hotel_id)
-        room_ids = [room['Number'] for room in rooms]  # Use Number field instead of PK
+        room_ids = [room['PK'].replace('ROOM#', '') for room in rooms]  # Extract room ID from PK
         
         # Get reservations for all rooms in date range
         all_reservations = []
@@ -193,6 +193,8 @@ def add_reservation(hotel_id: str, reservation: dict):
             "Status": reservation['status'],
             "ContactName": reservation['contact_name'],
             "ContactLastName": reservation['contact_last_name'],
+            "ContactPhone": reservation.get('contact_phone', ''),
+            "Notes": reservation.get('notes', ''),
             "UserId": user_id,
             "ModifiedBy": user_id,
             "CreatedOn": datetime.now().isoformat(),
@@ -254,13 +256,27 @@ def update_reservation(hotel_id: str, reservation_id: str, updates: dict):
             if not check_room_availability(hotel_id, room_id, check_in, check_out, reservation_id):
                 raise ValueError(f"Room {room_id} is not available for the selected dates")
         
+        # Map frontend field names to DynamoDB field names
+        field_mapping = {
+            'room_number': 'RoomId',
+            'check_in_date': 'CheckInDate',
+            'check_out_date': 'CheckOutDate',
+            'contact_name': 'ContactName',
+            'contact_last_name': 'ContactLastName',
+            'contact_phone': 'ContactPhone',
+            'notes': 'Notes'
+        }
+        
         update_expressions = []
         expression_values = {}
         
         for k, v in updates.items():
             if k in ["PK", "SK", "reservation_id", "EntityType"]:
                 continue
-            update_expressions.append(f"{k} = :{k}")
+            
+            # Use mapped field name if available, otherwise use original
+            db_field = field_mapping.get(k, k)
+            update_expressions.append(f"{db_field} = :{k}")
             expression_values[f":{k}"] = v
 
         if not update_expressions:

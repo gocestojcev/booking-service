@@ -13,6 +13,8 @@ class Reservation(BaseModel):
     status: str
     contact_name: str
     contact_last_name: str
+    contact_phone: str
+    notes: str
     guests: List[Guest]
 
 class Room(BaseModel):

@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
   profile = var.aws_profile
 }
 
@@ -20,8 +20,8 @@ data "aws_region" "current" {}
 # Local values
 locals {
   project_name = "booking-system"
-  environment = "prod"
-  
+  environment  = "prod"
+
   common_tags = {
     Project     = local.project_name
     Environment = local.environment

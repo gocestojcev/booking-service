@@ -22,31 +22,31 @@ Write-Host "Initializing Terraform..." -ForegroundColor Blue
 terraform init
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Terraform init failed" -ForegroundColor Red
+    Write-Host "Terraform init failed" -ForegroundColor Red
     exit 1
 }
 
 # Validate configuration
-Write-Host "🔍 Validating Terraform configuration..." -ForegroundColor Blue
+Write-Host "Validating Terraform configuration..." -ForegroundColor Blue
 terraform validate
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Terraform validation failed" -ForegroundColor Red
+    Write-Host "Terraform validation failed" -ForegroundColor Red
     exit 1
 }
 
 # Format code
-Write-Host "🎨 Formatting Terraform code..." -ForegroundColor Blue
+Write-Host "Formatting Terraform code..." -ForegroundColor Blue
 terraform fmt -recursive
 
 # Execute action
 switch ($Action.ToLower()) {
     "plan" {
-        Write-Host "📋 Planning Terraform deployment..." -ForegroundColor Blue
+        Write-Host "Planning Terraform deployment..." -ForegroundColor Blue
         terraform plan -out=tfplan
     }
     "apply" {
-        Write-Host "🚀 Applying Terraform configuration..." -ForegroundColor Blue
+        Write-Host "Applying Terraform configuration..." -ForegroundColor Blue
         terraform apply -auto-approve
     }
     "destroy" {
@@ -56,30 +56,30 @@ switch ($Action.ToLower()) {
         if ($confirm -eq "yes") {
             terraform destroy -auto-approve
         } else {
-            Write-Host "❌ Destruction cancelled" -ForegroundColor Yellow
+            Write-Host "Destruction cancelled" -ForegroundColor Yellow
         }
     }
     "output" {
-        Write-Host "📤 Displaying Terraform outputs..." -ForegroundColor Blue
+        Write-Host "Displaying Terraform outputs..." -ForegroundColor Blue
         terraform output
     }
     default {
-        Write-Host "❌ Unknown action: $Action" -ForegroundColor Red
+        Write-Host "Unknown action: $Action" -ForegroundColor Red
         Write-Host "Valid actions: plan, apply, destroy, output" -ForegroundColor Yellow
         exit 1
     }
 }
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Terraform $Action failed" -ForegroundColor Red
+    Write-Host "Terraform $Action failed" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "✅ Terraform $Action completed successfully!" -ForegroundColor Green
+Write-Host "Terraform $Action completed successfully!" -ForegroundColor Green
 
 # Display outputs if apply was successful
 if ($Action.ToLower() -eq "apply") {
     Write-Host ""
-    Write-Host "📤 Infrastructure Outputs:" -ForegroundColor Green
+    Write-Host "Infrastructure Outputs:" -ForegroundColor Green
     terraform output
 }

@@ -15,7 +15,7 @@ resource "aws_api_gateway_resource" "root" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_rest_api.main.root_resource_id
   path_part   = "{proxy+}"
-  
+
   lifecycle {
     ignore_changes = [path_part, parent_id]
   }
@@ -36,8 +36,8 @@ resource "aws_api_gateway_integration" "lambda" {
   http_method = aws_api_gateway_method.proxy.http_method
 
   integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = aws_lambda_function.main.invoke_arn
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.main.invoke_arn
 }
 
 # API Gateway Method - Root OPTIONS (for CORS)

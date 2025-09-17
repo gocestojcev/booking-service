@@ -82,10 +82,10 @@ output "cloudfront_url" {
 output "frontend_env_vars" {
   description = "Environment variables for frontend"
   value = {
-    REACT_APP_API_URL                    = "https://${aws_api_gateway_rest_api.main.id}.execute-api.${data.aws_region.current.name}.amazonaws.com/${aws_api_gateway_stage.main.stage_name}"
-    REACT_APP_USER_POOL_ID              = aws_cognito_user_pool.main.id
-    REACT_APP_USER_POOL_WEB_CLIENT_ID   = aws_cognito_user_pool_client.main.id
-    REACT_APP_REGION                    = data.aws_region.current.name
+    REACT_APP_API_URL                 = "https://${aws_api_gateway_rest_api.main.id}.execute-api.${data.aws_region.current.name}.amazonaws.com/${aws_api_gateway_stage.main.stage_name}"
+    REACT_APP_USER_POOL_ID            = aws_cognito_user_pool.main.id
+    REACT_APP_USER_POOL_WEB_CLIENT_ID = aws_cognito_user_pool_client.main.id
+    REACT_APP_REGION                  = data.aws_region.current.name
   }
 }
 

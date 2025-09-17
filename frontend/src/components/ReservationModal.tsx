@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Modal from 'react-modal';
 import { Room, Reservation, Guest } from '../services/api';
 import { apiService } from '../services/api';
@@ -29,12 +29,52 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
     status: 'Confirmed',
     contact_name: '',
     contact_last_name: '',
+    contact_phone: '',
+    notes: '',
     guests: [],
   });
 
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+
+  const loadReservationDetails = useCallback(async (reservationId: string) => {
+    console.log('Loading reservation details for ID:', reservationId);
+    console.log('Event data:', event);
+    console.log('Event reservation:', event.reservation);
+    
+    // Use reservation data from the event if available
+    if (event.reservation) {
+      console.log('Using event reservation data:', event.reservation);
+      setFormData({
+        reservation_id: reservationId,
+        room_number: event.resource.roomNumber,
+        check_in_date: event.reservation.CheckInDate,
+        check_out_date: event.reservation.CheckOutDate,
+        status: event.reservation.Status,
+        contact_name: event.reservation.ContactName,
+        contact_last_name: event.reservation.ContactLastName,
+        contact_phone: event.reservation.ContactPhone || '',
+        notes: event.reservation.Notes || '',
+        guests: event.reservation.Guests || [],
+      });
+      setGuests(event.reservation.Guests || []);
+    } else {
+      // Fallback to basic data if reservation details not available
+      setFormData({
+        reservation_id: reservationId,
+        room_number: event.resource.roomNumber,
+        check_in_date: event.start.toISOString().split('T')[0],
+        check_out_date: event.end.toISOString().split('T')[0],
+        status: event.resource.status,
+        contact_name: '',
+        contact_last_name: '',
+        contact_phone: '',
+        notes: '',
+        guests: [],
+      });
+    }
+  }, [event]);
 
   useEffect(() => {
     // Clear error state when modal opens or event changes
@@ -51,6 +91,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
           status: 'Confirmed',
           contact_name: '',
           contact_last_name: '',
+          contact_phone: '',
+          notes: '',
           guests: [],
         });
         setGuests([]);
@@ -59,7 +101,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
         loadReservationDetails(event.resource.reservationId);
       }
     }
-  }, [event, rooms]);
+  }, [event, rooms, loadReservationDetails]);
 
   // Clear error when modal is closed
   useEffect(() => {
@@ -67,35 +109,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       setError('');
     }
   }, [isOpen]);
-
-  const loadReservationDetails = async (reservationId: string) => {
-    // Use reservation data from the event if available
-    if (event.reservation) {
-      setFormData({
-        reservation_id: reservationId,
-        room_number: event.resource.roomNumber,
-        check_in_date: event.reservation.CheckInDate,
-        check_out_date: event.reservation.CheckOutDate,
-        status: event.reservation.Status,
-        contact_name: event.reservation.ContactName,
-        contact_last_name: event.reservation.ContactLastName,
-        guests: event.reservation.Guests || [],
-      });
-      setGuests(event.reservation.Guests || []);
-    } else {
-      // Fallback to basic data if reservation details not available
-      setFormData({
-        reservation_id: reservationId,
-        room_number: event.resource.roomNumber,
-        check_in_date: event.start.toISOString().split('T')[0],
-        check_out_date: event.end.toISOString().split('T')[0],
-        status: event.resource.status,
-        contact_name: '',
-        contact_last_name: '',
-        guests: [],
-      });
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -133,10 +146,14 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       if (event.id === 'new') {
         // Generate a unique reservation ID
         reservationData.reservation_id = `res_${Date.now()}`;
+        console.log('Creating reservation with data:', reservationData);
         await apiService.createReservation(hotelId, reservationData);
       } else {
         // Remove reservation_id from payload for updates since it's in the URL
         const { reservation_id, ...updateData } = reservationData;
+        console.log('Updating reservation with ID:', event.resource.reservationId);
+        console.log('Update data:', updateData);
+        console.log('Hotel ID:', hotelId);
         await apiService.updateReservation(hotelId, event.resource.reservationId, updateData);
       }
 
@@ -267,6 +284,34 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
                 value={formData.contact_last_name}
                 onChange={handleInputChange}
                 required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="contact_phone">Contact Phone:</label>
+              <input
+                type="tel"
+                id="contact_phone"
+                name="contact_phone"
+                value={formData.contact_phone}
+                onChange={handleInputChange}
+                placeholder="+1234567890"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="notes">Notes:</label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                rows={3}
+                placeholder="Additional notes or special requests..."
               />
             </div>
           </div>

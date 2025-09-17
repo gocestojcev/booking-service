@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import moment from 'moment';
-import { apiService, Hotel, Room, ReservationResponse } from '../services/api';
+import { apiService, Hotel, Room, ReservationResponse, Company } from '../services/api';
 import { userContext } from '../services/userContext';
 import { companyContext } from '../services/companyContext';
 import ReservationModal from './ReservationModal';
 import './Calendar.css';
+import { debug } from 'console';
 
 interface CalendarEvent {
   id: string;
@@ -38,8 +39,6 @@ interface RoomStatus {
   isCheckInDay?: boolean;
   isCheckOutDay?: boolean;
   isTransitionDay?: boolean;
-  checkOutReservationId?: string;
-  checkInReservationId?: string;
 }
 
 // Utility function to extract reservation ID from DynamoDB PK
@@ -55,80 +54,17 @@ const CalendarComponent: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [dateRange, setDateRange] = useState<Date[]>([]);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<string>('');
+  const [dateRange, setDateRange] = useState<Date[]>([]);
   const [hoveredCell, setHoveredCell] = useState<{roomId: string, date: Date} | null>(null);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const calendarGridRef = useRef<HTMLDivElement>(null);
-
-  const loadData = useCallback(async () => {
-    console.log('Loading data...');
-    try {
-      const currentUser = userContext.getCurrentUser();
-      if (!currentUser || !currentUser.id) {
-        console.log('No user found, skipping data load');
-        return;
-      }
-
-      console.log('Loading company for user:', currentUser.id);
-      const companyData = await apiService.getCompany(currentUser.companyId);
-      console.log('Loaded company:', companyData);
-      companyContext.setCurrentCompany(companyData);
-      
-      // Load hotels
-      console.log('Loading hotels...');
-      const hotelsData = await apiService.getHotels();
-      console.log('Loaded hotels:', hotelsData);
-      setHotels(hotelsData);
-      
-      if (hotelsData.length > 0) {
-        const firstHotel = hotelsData[0];
-        const hotelId = firstHotel.PK.replace('LOCATION#', '');
-        console.log('Setting selected hotel:', hotelId);
-        setSelectedHotel(hotelId);
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setIsDataLoading(false);
-    }
-  }, []);
-
-  const loadRooms = useCallback(async (hotelId: string) => {
-    if (!hotelId) return;
-    
-    try {
-      console.log('Loading rooms for hotel:', hotelId);
-      const roomsData = await apiService.getRooms(hotelId);
-      console.log('Loaded rooms:', roomsData);
-      setRooms(roomsData);
-    } catch (error) {
-      console.error('Error loading rooms:', error);
-    }
-  }, []);
-
-  const loadReservations = useCallback(async () => {
-    if (!selectedHotel) return;        
-
-    try {
-      // Extract hotel ID from PK (e.g., "HOTEL#loc1" -> "loc1")
-      const hotelId = selectedHotel.includes('#') ? selectedHotel.split('#')[1] : selectedHotel;
-      const startDate = moment(selectedDate).startOf('month').format('YYYY-MM-DD');     
-      const endDate = moment(selectedDate).endOf('month').format('YYYY-MM-DD');
-      console.log('Loading reservations for hotel:', selectedHotel, 'extracted ID:', hotelId, 'from', startDate, 'to', endDate);
-      
-      const reservationsData = await apiService.getReservations(hotelId, startDate, endDate);
-      console.log('Loaded reservations:', reservationsData);
-      setReservations(reservationsData);
-    } catch (error) {
-      console.error('Error loading reservations:', error);
-    }
-  }, [selectedHotel, selectedDate]);
 
   useEffect(() => {
     console.log('Calendar useEffect - loading data...');
     loadData();
-  }, [loadData]);
+  }, []);
 
   // Check if user context is properly set and reload data
   useEffect(() => {
@@ -148,7 +84,7 @@ const CalendarComponent: React.FC = () => {
     const timeoutId = setTimeout(checkUserAndLoad, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [loadData]);
+  }, []);
 
   const calculateDaysToShow = useCallback(() => {
     if (!calendarGridRef.current) return 7; // Default fallback
@@ -180,18 +116,16 @@ const CalendarComponent: React.FC = () => {
 
   useEffect(() => {
     if (selectedHotel) {
-      // Extract hotel ID from PK (e.g., "HOTEL#loc1" -> "loc1")
-      const hotelId = selectedHotel.includes('#') ? selectedHotel.split('#')[1] : selectedHotel;
-      loadRooms(hotelId);
+      loadRooms(selectedHotel);
     }
-  }, [selectedHotel, loadRooms]);
+  }, [selectedHotel]);
 
   useEffect(() => {
     if (selectedHotel && rooms.length > 0) {
       loadReservations();
       generateDateRange();
     }
-  }, [selectedHotel, rooms, selectedDate, generateDateRange, loadReservations]);
+  }, [selectedHotel, rooms, selectedDate, generateDateRange]);
 
   // Add resize listener to recalculate date range when window size changes
   useEffect(() => {
@@ -213,9 +147,81 @@ const CalendarComponent: React.FC = () => {
     };
   }, [selectedHotel, rooms, generateDateRange]);
 
+  const loadData = async () => {
+    try {
+      setIsDataLoading(true);
+      console.log('Calendar loadData - starting...');
+      
+      // Load company data and set it in context
+      const currentUser = userContext.getCurrentUser();
+      console.log('Current user from context:', currentUser);
+      console.log('Company ID to fetch:', currentUser.companyId);
+      
+      console.log('Making API call to getCompany...');
+      const companyData = await apiService.getCompany(currentUser.companyId);
+      console.log('Company data loaded successfully:', companyData);
+      companyContext.setCurrentCompany(companyData);
+      
+      // Load hotels after company is loaded
+      console.log('Loading hotels after company loaded...');
+      await loadHotels();
+      console.log('Data loading completed, setting isDataLoading to false');
+      setIsDataLoading(false);
+    } catch (error) {
+      console.error('Error loading user company:', error);
+      // Try to load hotels anyway
+      console.log('Trying to load hotels despite company error...');
+      await loadHotels();
+      setIsDataLoading(false);
+    }
+  };
 
+  const loadHotels = async () => {
+    try {
+      console.log('Calendar loadHotels - starting...');
+      console.log('Making API call to getHotels...');
+      const hotelsData = await apiService.getHotels();
+      console.log('Hotels data loaded successfully:', hotelsData);
+      setHotels(hotelsData);
+      if (hotelsData.length > 0) {
+        const hotelId = hotelsData[0].PK.replace('LOCATION#', '');
+        setSelectedHotel(hotelId);
+        console.log('Selected hotel:', hotelId);
+      } else {
+        console.log('No hotels found in response');
+      }
+    } catch (error) {
+      console.error('Error loading hotels:', error);
+    }
+  };
 
+  const loadRooms = async (hotelId: string) => {
+    try {
+      const roomsData = await apiService.getRooms(hotelId);
+      setRooms(roomsData);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+    }
+  };
 
+  const loadReservations = async () => {
+    if (!selectedHotel) return;
+
+    setLoading(true);
+    try {
+      const startDate = moment(selectedDate).startOf('month').format('YYYY-MM-DD');
+      const endDate = moment(selectedDate).endOf('month').format('YYYY-MM-DD');
+      
+      console.log('Loading reservations for:', { selectedHotel, startDate, endDate });
+      const reservationsData = await apiService.getReservations(selectedHotel, startDate, endDate);
+      console.log('Loaded reservations:', reservationsData);
+      setReservations(reservationsData);
+    } catch (error) {
+      console.error('Error loading reservations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRoomStatusForDate = (roomId: string, date: Date): RoomStatus => {
     // Convert the date to a string in YYYY-MM-DD format for comparison
@@ -259,8 +265,6 @@ const CalendarComponent: React.FC = () => {
             isCheckInDay: true, // Show as check-in day for the new reservation
             isCheckOutDay: true, // Show as check-out day for the ending reservation
             isTransitionDay: true, // Special flag for transition day
-            checkOutReservationId: extractReservationId(checkOutReservation.PK), // ID of the ending reservation
-            checkInReservationId: extractReservationId(checkInReservation.PK), // ID of the starting reservation
           };
         } else {
           // Actual conflict - overlapping reservations
@@ -404,39 +408,6 @@ const CalendarComponent: React.FC = () => {
     }
   };
 
-  const handleReservationClick = (roomId: string, date: Date, reservationId: string) => {
-    console.log('Specific reservation clicked:', roomId, date, 'Reservation ID:', reservationId);
-    
-    const reservation = reservations.find(res => extractReservationId(res.PK) === reservationId);
-    if (reservation) {
-      console.log('Found specific reservation:', reservation);
-      const event: CalendarEvent = {
-        id: reservation.PK,
-        title: `Room ${roomId} - ${reservation.ContactName}`,
-        start: new Date(reservation.CheckInDate),
-        end: new Date(reservation.CheckOutDate),
-        resource: {
-          roomId: roomId,
-          roomNumber: roomId,
-          reservationId: extractReservationId(reservation.PK),
-          status: reservation.Status,
-        },
-        reservation: {
-          ContactName: reservation.ContactName,
-          ContactLastName: reservation.ContactLastName || '',
-          CheckInDate: reservation.CheckInDate,
-          CheckOutDate: reservation.CheckOutDate,
-          Status: reservation.Status,
-          Guests: reservation.Guests || [],
-        },
-      };
-      setSelectedEvent(event);
-      setIsModalOpen(true);
-    } else {
-      console.error('Reservation not found for ID:', reservationId);
-    }
-  };
-
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
@@ -569,28 +540,76 @@ const CalendarComponent: React.FC = () => {
                     }}
                   >
                     {roomStatus.status === 'booked' ? (
-                      roomStatus.isCheckOutDay && roomStatus.isCheckInDay ? (
-                        // Transition day - both check-in and check-out on same day
+                      roomStatus.isTransitionDay ? (
+                        // Transition day - split cell
                         <>
                           <div 
-                            className="cell-half left-half booked"
+                            className="cell-half left-half"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Click on the left half - edit existing reservation ending
-                              if (roomStatus.checkOutReservationId) {
-                                handleReservationClick(room.Number, date, roomStatus.checkOutReservationId);
+                              // Find the ending reservation
+                              const endingReservation = reservations.find(res => 
+                                res.RoomId === room.Number && res.CheckOutDate === moment(date).format('YYYY-MM-DD')
+                              );
+                              if (endingReservation) {
+                                const event: CalendarEvent = {
+                                  id: endingReservation.PK,
+                                  title: endingReservation.ContactName,
+                                  start: new Date(endingReservation.CheckInDate),
+                                  end: new Date(endingReservation.CheckOutDate),
+                                  resource: {
+                                    roomId: endingReservation.RoomId,
+                                    roomNumber: endingReservation.RoomId,
+                                    reservationId: extractReservationId(endingReservation.PK),
+                                    status: endingReservation.Status,
+                                  },
+                                  reservation: {
+                                    ContactName: endingReservation.ContactName,
+                                    ContactLastName: endingReservation.ContactLastName || '',
+                                    CheckInDate: endingReservation.CheckInDate,
+                                    CheckOutDate: endingReservation.CheckOutDate,
+                                    Status: endingReservation.Status,
+                                    Guests: endingReservation.Guests || [],
+                                  },
+                                };
+                                setSelectedEvent(event);
+                                setIsModalOpen(true);
                               }
                             }}
                           >
                             <div className="check-out-arrow">►</div>
                           </div>
                           <div 
-                            className="cell-half right-half booked"
+                            className="cell-half right-half"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Click on the right half - edit existing reservation starting
-                              if (roomStatus.checkInReservationId) {
-                                handleReservationClick(room.Number, date, roomStatus.checkInReservationId);
+                              // Find the starting reservation
+                              const startingReservation = reservations.find(res => 
+                                res.RoomId === room.Number && res.CheckInDate === moment(date).format('YYYY-MM-DD')
+                              );
+                              if (startingReservation) {
+                                const event: CalendarEvent = {
+                                  id: startingReservation.PK,
+                                  title: startingReservation.ContactName,
+                                  start: new Date(startingReservation.CheckInDate),
+                                  end: new Date(startingReservation.CheckOutDate),
+                                  resource: {
+                                    roomId: startingReservation.RoomId,
+                                    roomNumber: startingReservation.RoomId,
+                                    reservationId: extractReservationId(startingReservation.PK),
+                                    status: startingReservation.Status,
+                                  },
+                                  reservation: {
+                                    ContactName: startingReservation.ContactName,
+                                    ContactLastName: startingReservation.ContactLastName || '',
+                                    CheckInDate: startingReservation.CheckInDate,
+                                    CheckOutDate: startingReservation.CheckOutDate,
+                                    Status: startingReservation.Status,
+                                    Guests: startingReservation.Guests || [],
+                                  },
+                                };
+                                setSelectedEvent(event);
+                                setIsModalOpen(true);
                               }
                             }}
                           >
@@ -598,14 +617,28 @@ const CalendarComponent: React.FC = () => {
                           </div>
                         </>
                       ) : roomStatus.isCheckOutDay ? (
-                        // Check-out day - split cell with green right half for new reservation
+                        // Only checkout day - split cell with green right half
                         <>
                           <div 
-                            className="cell-half left-half booked"
+                            className="cell-half left-half"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Click on the booked half - edit existing reservation
-                              handleRoomClick(room.Number, date);
+                              if (roomStatus.reservationId) {
+                                const event: CalendarEvent = {
+                                  id: roomStatus.reservationId,
+                                  title: roomStatus.guestName || '',
+                                  start: new Date(roomStatus.checkIn || ''),
+                                  end: new Date(roomStatus.checkOut || ''),
+                                  resource: {
+                                    roomId: roomStatus.roomId,
+                                    roomNumber: roomStatus.roomNumber,
+                                    reservationId: roomStatus.reservationId,
+                                    status: 'booked',
+                                  },
+                                };
+                                setSelectedEvent(event);
+                                setIsModalOpen(true);
+                              }
                             }}
                           >
                             <div className="check-out-arrow">►</div>
@@ -614,37 +647,11 @@ const CalendarComponent: React.FC = () => {
                             className="cell-half right-half available"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Click on the green half - create new reservation starting this day
+                              // Open create new reservation modal
                               const event: CalendarEvent = {
                                 id: 'new',
                                 title: 'New Reservation',
                                 start: date,
-                                end: moment(date).add(1, 'day').toDate(),
-                                resource: {
-                                  roomId: room.Number,
-                                  roomNumber: room.Number,
-                                  reservationId: 'new',
-                                  status: 'available',
-                                },
-                              };
-                              setSelectedEvent(event);
-                              setIsModalOpen(true);
-                            }}
-                          >
-                          </div>
-                        </>
-                      ) : roomStatus.isCheckInDay ? (
-                        // Check-in day - split cell with green left half for new reservation
-                        <>
-                          <div 
-                            className="cell-half left-half available"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Click on the green half - create new reservation ending this day
-                              const event: CalendarEvent = {
-                                id: 'new',
-                                title: 'New Reservation',
-                                start: moment(date).subtract(1, 'day').toDate(),
                                 end: date,
                                 resource: {
                                   roomId: room.Number,
@@ -657,21 +664,65 @@ const CalendarComponent: React.FC = () => {
                               setIsModalOpen(true);
                             }}
                           >
+                            {/* Green half for new reservation */}
                           </div>
+                        </>
+                      ) : roomStatus.isCheckInDay ? (
+                        // Only check-in day - split cell with green left half
+                        <>
                           <div 
-                            className="cell-half right-half booked"
+                            className="cell-half left-half available"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Click on the booked half - edit existing reservation
-                              handleRoomClick(room.Number, date);
+                              // Open create new reservation modal
+                              const event: CalendarEvent = {
+                                id: 'new',
+                                title: 'New Reservation',
+                                start: date,
+                                end: date,
+                                resource: {
+                                  roomId: room.Number,
+                                  roomNumber: room.Number,
+                                  reservationId: 'new',
+                                  status: 'available',
+                                },
+                              };
+                              setSelectedEvent(event);
+                              setIsModalOpen(true);
+                            }}
+                          >
+                            {/* Green half for new reservation */}
+                          </div>
+                          <div 
+                            className="cell-half right-half"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (roomStatus.reservationId) {
+                                const event: CalendarEvent = {
+                                  id: roomStatus.reservationId,
+                                  title: roomStatus.guestName || '',
+                                  start: new Date(roomStatus.checkIn || ''),
+                                  end: new Date(roomStatus.checkOut || ''),
+                                  resource: {
+                                    roomId: roomStatus.roomId,
+                                    roomNumber: roomStatus.roomNumber,
+                                    reservationId: roomStatus.reservationId,
+                                    status: 'booked',
+                                  },
+                                };
+                                setSelectedEvent(event);
+                                setIsModalOpen(true);
+                              }
                             }}
                           >
                             <div className="check-in-arrow">◄</div>
                           </div>
                         </>
                       ) : (
-                        // Regular booked day
+                        // Regular booked day or check-in day
                         <div className="reservation-bar">
+                          {roomStatus.isCheckInDay && <div className="check-in-arrow">◄</div>}
+                          {roomStatus.isCheckOutDay && <div className="check-out-arrow">►</div>}
                         </div>
                       )
                     ) : null}
@@ -689,7 +740,7 @@ const CalendarComponent: React.FC = () => {
         onSave={handleReservationSave}
         event={selectedEvent}
         rooms={rooms}
-        hotelId={selectedHotel.includes('#') ? selectedHotel.split('#')[1] : selectedHotel}
+        hotelId={selectedHotel}
       />
     </div>
   );

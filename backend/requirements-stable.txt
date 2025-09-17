@@ -1,0 +1,33 @@
+# Stable requirements for Lambda deployment
+# Using compatible versions that work well together
+
+# Core FastAPI dependencies - using compatible versions
+fastapi==0.104.1
+starlette==0.27.0
+pydantic==1.10.13
+
+# AWS dependencies
+boto3==1.35.76
+mangum==0.17.0
+
+# Authentication dependencies
+python-jose==3.3.0
+ecdsa==0.19.0
+rsa==4.9
+pyasn1==0.6.0
+requests==2.31.0
+
+# Environment and configuration
+python-dotenv==1.0.0
+
+# HTTP client dependencies
+urllib3==1.26.18
+certifi==2023.7.22
+charset-normalizer==3.3.2
+idna==3.4
+
+# Type hints and compatibility
+typing_extensions==4.8.0
+
+# Development server
+uvicorn==0.24.0

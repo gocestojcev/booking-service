@@ -2,19 +2,19 @@
 resource "aws_lambda_function" "main" {
   filename         = "../deployment/booking-system-api-deployment.zip"
   function_name    = var.lambda_function_name
-  role            = aws_iam_role.lambda_execution_role.arn
-  handler         = "lambda_handler.handler"
+  role             = aws_iam_role.lambda_execution_role.arn
+  handler          = "lambda_handler.handler"
   source_code_hash = filebase64sha256("../deployment/booking-system-api-deployment.zip")
-  runtime         = var.lambda_runtime
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory_size
+  runtime          = var.lambda_runtime
+  timeout          = var.lambda_timeout
+  memory_size      = var.lambda_memory_size
 
   environment {
     variables = {
-      COGNITO_REGION         = data.aws_region.current.name
-      COGNITO_USER_POOL_ID   = aws_cognito_user_pool.main.id
-      COGNITO_APP_CLIENT_ID  = aws_cognito_user_pool_client.main.id
-      DYNAMODB_TABLE_NAME    = aws_dynamodb_table.main.name
+      COGNITO_REGION        = data.aws_region.current.name
+      COGNITO_USER_POOL_ID  = aws_cognito_user_pool.main.id
+      COGNITO_APP_CLIENT_ID = aws_cognito_user_pool_client.main.id
+      DYNAMODB_TABLE_NAME   = aws_dynamodb_table.main.name
     }
   }
 
@@ -31,7 +31,7 @@ resource "aws_lambda_function" "main" {
 # Build Lambda package
 resource "null_resource" "build_lambda_package" {
   provisioner "local-exec" {
-    command = <<-EOT
+    command     = <<-EOT
       cd ../deployment
       if (Test-Path "lambda-package") { Remove-Item -Recurse -Force "lambda-package" }
       New-Item -ItemType Directory -Path "lambda-package"
@@ -55,7 +55,7 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   retention_in_days = 14
 
   tags = local.common_tags
-  
+
   lifecycle {
     ignore_changes = [name]
   }

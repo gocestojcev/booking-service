@@ -89,9 +89,9 @@ def read_rooms(hotel_id: str, current_user: dict = Depends(get_authenticated_use
         raise HTTPException(status_code=500, detail=f"Error retrieving rooms: {str(e)}")
 
 @app.get("/hotels/{hotel_id}/reservations")
-def read_reservations(hotel_id: str, start_date: str, end_date: str): # Temporarily disabled auth for testing
+def read_reservations(hotel_id: str, start_date: str, end_date: str, current_user: dict = Depends(get_authenticated_user)):
     try:
-        logger.info(f"Accessing reservations for hotel {hotel_id}")
+        logger.info(f"User {current_user.get('username')} accessing reservations for hotel {hotel_id}")
         return {"reservations": get_reservations(hotel_id, start_date, end_date)}
     except Exception as e:
         logger.error(f"Error retrieving reservations for hotel {hotel_id} from {start_date} to {end_date}: {str(e)}", exc_info=True)
@@ -115,9 +115,12 @@ def create_reservation(hotel_id: str, reservation: Reservation, current_user: di
 def modify_reservation(hotel_id: str, reservation_id: str, reservation: Reservation, current_user: dict = Depends(get_authenticated_user)):
     try:
         logger.info(f"User {current_user.get('username')} updating reservation {reservation_id} for hotel {hotel_id}")
+        logger.info(f"Received reservation data: {reservation}")
         reservation_data = reservation.dict()
+        logger.info(f"Converted to dict: {reservation_data}")
         if 'reservation_id' in reservation_data:
             del reservation_data['reservation_id']
+        logger.info(f"Final update data: {reservation_data}")
         updated_item = update_reservation(hotel_id, reservation_id, reservation_data)
         if not updated_item:
             logger.warning(f"Reservation not found or no updates applied for hotel_id: {hotel_id}, reservation_id: {reservation_id}")

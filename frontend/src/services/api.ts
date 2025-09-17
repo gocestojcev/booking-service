@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { authService } from './authService';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_ENDPOINT || 'https://05omu2hiva.execute-api.eu-central-1.amazonaws.com/prod';
+const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_ENDPOINT || (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : 'https://05omu2hiva.execute-api.eu-central-1.amazonaws.com/prod');
+
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -101,6 +105,8 @@ export interface Reservation {
   status: string;
   contact_name: string;
   contact_last_name: string;
+  contact_phone: string;
+  notes: string;
   guests: Guest[];
 }
 
@@ -116,6 +122,8 @@ export interface ReservationResponse {
   TransportPrice: number;
   ContactName: string;
   ContactLastName: string;
+  ContactPhone: string;
+  Notes: string;
   UserId: string;
   ModifiedBy: string;
   CreatedOn: string;
