@@ -73,8 +73,10 @@ def get_hotel(hotel_id: str):
 
 def get_rooms(hotel_id: str):
     try:
+        # Query rooms using GSI2 (rooms are indexed by location)
         response = table.query(
-            KeyConditionExpression=Key('PK').eq(f'LOCATION#{hotel_id}') & Key('SK').begins_with('ROOM#')
+            IndexName='GSI2',
+            KeyConditionExpression=Key('GSI2PK').eq(f'LOCATION#{hotel_id}') & Key('GSI2SK').begins_with('ROOM#')
         )
         rooms = response.get('Items', [])
         

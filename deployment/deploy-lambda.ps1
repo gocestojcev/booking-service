@@ -25,7 +25,9 @@ Copy-Item -Path "lambda_handler.py" -Destination "$packageDir/"
 # Install dependencies in the package directory
 Set-Location $packageDir
 Write-Host "Installing Python dependencies..." -ForegroundColor Yellow
-pip install -r ../requirements.txt -t . --no-deps
+Write-Host "Current directory: $(Get-Location)" -ForegroundColor Cyan
+Write-Host "Looking for requirements file at: $(Resolve-Path '../backend/requirements.txt')" -ForegroundColor Cyan
+pip install -r ../../backend/requirements.txt -t . --no-deps
 Set-Location ..
 
 # Create deployment zip

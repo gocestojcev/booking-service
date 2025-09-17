@@ -37,6 +37,9 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
+    // Clear error state when modal opens or event changes
+    setError('');
+    
     if (event) {
       if (event.id === 'new') {
         // New reservation
@@ -57,6 +60,13 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       }
     }
   }, [event, rooms]);
+
+  // Clear error when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setError('');
+    }
+  }, [isOpen]);
 
   const loadReservationDetails = async (reservationId: string) => {
     // Use reservation data from the event if available
@@ -125,7 +135,9 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
         reservationData.reservation_id = `res_${Date.now()}`;
         await apiService.createReservation(hotelId, reservationData);
       } else {
-        await apiService.updateReservation(hotelId, event.resource.reservationId, reservationData);
+        // Remove reservation_id from payload for updates since it's in the URL
+        const { reservation_id, ...updateData } = reservationData;
+        await apiService.updateReservation(hotelId, event.resource.reservationId, updateData);
       }
 
       onSave();

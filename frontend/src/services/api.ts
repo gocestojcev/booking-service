@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { authService } from './authService';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://05omu2hiva.execute-api.eu-central-1.amazonaws.com/prod';
+const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_ENDPOINT || 'https://05omu2hiva.execute-api.eu-central-1.amazonaws.com/prod';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -20,21 +20,33 @@ def load_test_data():
         'PK': 'COMPANY#comp1',
         'SK': 'METADATA',
         'EntityType': 'Company',
-        'Name': 'Drango Hotels',
+        'Name': 'Мојата компанија',
         'GSI1PK': 'COMPANY#comp1',
         'GSI1SK': 'COMPANY#comp1'
     }
     
-    # Test Location (Hotel)
+    # Test Location (Hotel 1)
     location_item = {
         'PK': 'LOCATION#loc1',
         'SK': 'METADATA',
         'EntityType': 'Location',
-        'Name': 'Drango Hotel Berlin',
+        'Name': 'Мојот Хотел 1',
         'CompanyId': 'comp1',
         'sort_number': 1,
         'GSI1PK': 'COMPANY#comp1',
         'GSI1SK': 'LOCATION#loc1'
+    }
+    
+    # Test Location (Hotel 2)
+    location_item_2 = {
+        'PK': 'LOCATION#loc2',
+        'SK': 'METADATA',
+        'EntityType': 'Location',
+        'Name': 'Мојот Хотел 2',
+        'CompanyId': 'comp1',
+        'sort_number': 2,
+        'GSI1PK': 'COMPANY#comp1',
+        'GSI1SK': 'LOCATION#loc2'
     }
     
     # Test Room

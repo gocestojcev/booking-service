@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import moment from 'moment';
 import { apiService, Hotel, Room, ReservationResponse, Company } from '../services/api';
 import { userContext } from '../services/userContext';
+import { companyContext } from '../services/companyContext';
 import ReservationModal from './ReservationModal';
 import './Calendar.css';
 import { debug } from 'console';
@@ -40,9 +41,12 @@ interface RoomStatus {
   isTransitionDay?: boolean;
 }
 
+// Utility function to extract reservation ID from DynamoDB PK
+const extractReservationId = (pk: string): string => {
+  return pk.replace('RESERVATION#', '');
+};
+
 const CalendarComponent: React.FC = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<ReservationResponse[]>([]);
@@ -55,12 +59,13 @@ const CalendarComponent: React.FC = () => {
   const [dateRange, setDateRange] = useState<Date[]>([]);
   const [hoveredCell, setHoveredCell] = useState<{roomId: string, date: Date} | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const calendarGridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('Calendar useEffect - loading companies...');
+    console.log('Calendar useEffect - loading data...');
     // Add a small delay to ensure user context is set
     setTimeout(() => {
-      loadCompanies();
+      loadData();
     }, 100);
   }, []);
 
@@ -71,7 +76,7 @@ const CalendarComponent: React.FC = () => {
       console.log('Checking user context:', currentUser);
       if (currentUser && currentUser.id !== 'user1') {
         console.log('Real user detected, reloading data...');
-        loadCompanies();
+        loadData();
       }
     };
     
@@ -84,6 +89,34 @@ const CalendarComponent: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, []);
 
+  const calculateDaysToShow = useCallback(() => {
+    if (!calendarGridRef.current) return 7; // Default fallback
+    
+    const calendarWidth = calendarGridRef.current.offsetWidth;
+    const roomListWidth = 250; // Fixed width of room list from CSS
+    const availableWidth = calendarWidth - roomListWidth;
+    const cellMinWidth = 80; // From CSS min-width: 80px
+    const maxDays = Math.floor(availableWidth / cellMinWidth);
+    
+    // Ensure we show at least 1 day and at most 30 days
+    return Math.max(1, Math.min(maxDays, 30));
+  }, []);
+
+  const generateDateRange = useCallback(() => {
+    const daysToShow = calculateDaysToShow();
+    const dates: Date[] = [];
+    const startDate = moment(selectedDate);
+    const endDate = moment(selectedDate).add(daysToShow - 1, 'days');
+    
+    let current = startDate.clone();
+    while (current.isSameOrBefore(endDate, 'day')) {
+      dates.push(current.toDate());
+      current.add(1, 'day');
+    }
+    
+    setDateRange(dates);
+  }, [selectedDate, calculateDaysToShow]);
+
   useEffect(() => {
     if (selectedHotel) {
       loadRooms(selectedHotel);
@@ -95,28 +128,34 @@ const CalendarComponent: React.FC = () => {
       loadReservations();
       generateDateRange();
     }
-  }, [selectedHotel, rooms, selectedDate]);
+  }, [selectedHotel, rooms, selectedDate, generateDateRange]);
 
-  const generateDateRange = () => {
-    const startDate = moment(selectedDate).startOf('month');
-    const endDate = moment(selectedDate).endOf('month');
-    const dates: Date[] = [];
+  // Add resize listener to recalculate date range when window size changes
+  useEffect(() => {
+    let resizeTimeout: NodeJS.Timeout;
     
-    // Start from the first day of the month to match the header
-    let current = startDate.clone();
-    while (current.isSameOrBefore(endDate, 'day')) {
-      dates.push(current.toDate());
-      current.add(1, 'day');
-    }
-    
-    setDateRange(dates);
-  };
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (selectedHotel && rooms.length > 0) {
+          generateDateRange();
+        }
+      }, 100); // Debounce resize events
+    };
 
-  const loadCompanies = async () => {
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimeout);
+    };
+  }, [selectedHotel, rooms, generateDateRange]);
+
+  const loadData = async () => {
     try {
       setIsDataLoading(true);
-      console.log('Calendar loadCompanies - starting...');
-      // Get company from logged-in user context
+      console.log('Calendar loadData - starting...');
+      
+      // Load company data and set it in context
       const currentUser = userContext.getCurrentUser();
       console.log('Current user from context:', currentUser);
       console.log('Company ID to fetch:', currentUser.companyId);
@@ -124,7 +163,7 @@ const CalendarComponent: React.FC = () => {
       console.log('Making API call to getCompany...');
       const companyData = await apiService.getCompany(currentUser.companyId);
       console.log('Company data loaded successfully:', companyData);
-      setSelectedCompany(companyData);
+      companyContext.setCurrentCompany(companyData);
       
       // Load hotels after company is loaded
       console.log('Loading hotels after company loaded...');
@@ -255,7 +294,7 @@ const CalendarComponent: React.FC = () => {
         roomId,
         roomNumber: roomId,
         status: 'booked',
-        reservationId: reservation.PK,
+        reservationId: extractReservationId(reservation.PK),
         guestName: reservation.ContactName,
         checkIn: reservation.CheckInDate,
         checkOut: reservation.CheckOutDate,
@@ -286,7 +325,7 @@ const CalendarComponent: React.FC = () => {
           resource: {
             roomId: roomId,
             roomNumber: roomId,
-            reservationId: reservation.PK.replace('RESERVATION#', ''),
+            reservationId: extractReservationId(reservation.PK),
             status: reservation.Status,
           },
           reservation: {
@@ -358,12 +397,6 @@ const CalendarComponent: React.FC = () => {
     return (
       <div className="room-calendar-container">
         <div className="calendar-header">
-        <div className="hotel-info">
-          <h1>{selectedCompany?.Name || 'Loading...'}</h1>
-          <div className="user-context-info">
-            <small>Loading company and hotel data...</small>
-          </div>
-        </div>
         </div>
         <div className="loading-container">
           <div className="loading-spinner">Loading...</div>
@@ -376,11 +409,16 @@ const CalendarComponent: React.FC = () => {
     <div className="room-calendar-container">
       <div className="calendar-controls">
         <div className="date-navigation">
-          <button onClick={() => setSelectedDate(moment(selectedDate).subtract(1, 'month').toDate())}>
+          <button onClick={() => setSelectedDate(moment(selectedDate).subtract(1, 'day').toDate())}>
             ←
           </button>
-          <span>{moment(selectedDate).format('MMMM YYYY')}</span>
-          <button onClick={() => setSelectedDate(moment(selectedDate).add(1, 'month').toDate())}>
+          <input
+            type="date"
+            value={moment(selectedDate).format('YYYY-MM-DD')}
+            onChange={(e) => setSelectedDate(new Date(e.target.value))}
+            className="date-picker"
+          />
+          <button onClick={() => setSelectedDate(moment(selectedDate).add(1, 'day').toDate())}>
             →
           </button>
         </div>
@@ -415,16 +453,18 @@ const CalendarComponent: React.FC = () => {
           ))}
         </div>
 
-        <div className="calendar-grid">
+        <div className="calendar-grid" ref={calendarGridRef}>
           <div className="date-header">
             {dateRange.map((date, index) => (
               <div
                 key={index}
                 className={`date-cell ${
+                  index === 0 ? 'selected' : ''
+                } ${
                   hoveredCell && moment(hoveredCell.date).format('YYYY-MM-DD') === moment(date).format('YYYY-MM-DD') ? 'hovered' : ''
                 }`}
               >
-                {moment(date).format('DD-MM-YY')}
+                {moment(date).format('ddd, MMM Do')}
               </div>
             ))}
           </div>
@@ -471,7 +511,7 @@ const CalendarComponent: React.FC = () => {
                                   resource: {
                                     roomId: endingReservation.RoomId,
                                     roomNumber: endingReservation.RoomId,
-                                    reservationId: endingReservation.PK,
+                                    reservationId: extractReservationId(endingReservation.PK),
                                     status: endingReservation.Status,
                                   },
                                   reservation: {
@@ -507,7 +547,7 @@ const CalendarComponent: React.FC = () => {
                                   resource: {
                                     roomId: startingReservation.RoomId,
                                     roomNumber: startingReservation.RoomId,
-                                    reservationId: startingReservation.PK,
+                                    reservationId: extractReservationId(startingReservation.PK),
                                     status: startingReservation.Status,
                                   },
                                   reservation: {

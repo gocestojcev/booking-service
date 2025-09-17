@@ -38,31 +38,6 @@
   align-items: center;
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-.legend-color {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-}
-
-.legend-color.available {
-  background-color: #d4edda;
-  border-color: #c3e6cb;
-}
-
-.legend-color.booked {
-  background-color: #eb5b67;
-  border-color: #f5c6cb;
-}
 
 .calendar-controls {
   display: flex;
@@ -186,10 +161,31 @@
   background-color: #2980b9;
 }
 
+.date-picker {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 0 10px;
+}
+
+.date-picker:hover {
+  border-color: #3498db;
+}
+
+.date-picker:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
 .date-navigation span {
   font-size: 16px;
   font-weight: 500;
-  min-width: 150px;
+  min-width: 300px;
   text-align: center;
 }
 
@@ -304,7 +300,7 @@
 .calendar-grid {
   flex: 1;
   overflow-x: auto;
-  min-width: 600px;
+  min-width: 0; /* Allow flex to shrink */
 }
 
 .date-header {
@@ -316,7 +312,8 @@
 }
 
 .date-cell {
-  min-width: 80px;
+  flex: 1;
+  min-width: 80px; /* Minimum width for readability */
   padding: 12px 8px;
   text-align: center;
   font-weight: bold;
@@ -335,6 +332,13 @@
   background-color: #ecf0f1;
   color: #2c3e50;
   font-weight: bold;
+}
+
+.date-cell.selected {
+  background-color: #3498db;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
 }
 
 .date-cell.hovered {
@@ -357,7 +361,8 @@
 }
 
 .room-cell {
-  min-width: 80px;
+  flex: 1;
+  min-width: 80px; /* Minimum width for readability */
   border-right: 1px solid #ffffff;
   cursor: pointer;
   position: relative;

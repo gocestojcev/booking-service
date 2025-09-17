@@ -2,12 +2,14 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userContext } from '../services/userContext';
 import { authService } from '../services/authService';
+import { useCompany } from '../hooks/useCompany';
 import Login from './Login';
 import CalendarComponent from './Calendar';
 import './AuthenticatedApp.css';
 
 const AuthenticatedApp: React.FC = () => {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const { companyName } = useCompany();
 
   console.log('AuthenticatedApp render - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user);
 
@@ -48,7 +50,7 @@ const AuthenticatedApp: React.FC = () => {
     <div className="authenticated-app">
         <header className="app-header">
           <div className="header-content">
-            <h1>Vili Vardar - Booking</h1>
+            <h1>{companyName} - Booking</h1>
             <div className="user-menu">
             <div className="user-dropdown">
               <button className="user-dropdown-toggle">

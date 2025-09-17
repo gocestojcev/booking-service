@@ -1,0 +1,9 @@
+{
+  "httpMethod": "GET",
+  "path": "/hotels/loc1/rooms",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "queryStringParameters": null,
+  "body": null
+}

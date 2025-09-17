@@ -20,7 +20,7 @@ put_item '{
     "PK": {"S": "COMPANY#comp1"},
     "SK": {"S": "METADATA"},
     "EntityType": {"S": "Company"},
-    "Name": {"S": "Drango Hotels"},
+    "Name": {"S": "Мојата компанија"},
     "GSI1PK": {"S": "COMPANY#comp1"},
     "GSI1SK": {"S": "COMPANY#comp1"}
 }'
@@ -31,7 +31,7 @@ put_item '{
     "PK": {"S": "LOCATION#loc1"},
     "SK": {"S": "METADATA"},
     "EntityType": {"S": "Location"},
-    "Name": {"S": "Drango Hotel Berlin"},
+    "Name": {"S": "Мојот Хотел 1"},
     "CompanyId": {"S": "comp1"},
     "GSI1PK": {"S": "COMPANY#comp1"},
     "GSI1SK": {"S": "LOCATION#loc1"}
@@ -41,7 +41,7 @@ put_item '{
     "PK": {"S": "LOCATION#loc2"},
     "SK": {"S": "METADATA"},
     "EntityType": {"S": "Location"},
-    "Name": {"S": "Drango Hotel Munich"},
+    "Name": {"S": "Мојот Хотел 2"},
     "CompanyId": {"S": "comp1"},
     "GSI1PK": {"S": "COMPANY#comp1"},
     "GSI1SK": {"S": "LOCATION#loc2"}
@@ -104,16 +104,29 @@ put_item '{
 }'
 
 put_item '{
-    "PK": {"S": "ROOM#room3"},
+    "PK": {"S": "ROOM#301_h2"},
     "SK": {"S": "METADATA"},
     "EntityType": {"S": "Room"},
     "LocationId": {"S": "loc2"},
-    "Type": {"S": "Suite"},
+    "Type": {"S": "апп 2/4"},
     "Number": {"S": "301"},
-    "Note": {"S": "Executive suite"},
+    "Note": {"S": "Apartment for 2-4 people"},
     "IsActive": {"BOOL": true},
     "GSI2PK": {"S": "LOCATION#loc2"},
-    "GSI2SK": {"S": "ROOM#room3"}
+    "GSI2SK": {"S": "ROOM#301_h2"}
+}'
+
+put_item '{
+    "PK": {"S": "ROOM#302_h2"},
+    "SK": {"S": "METADATA"},
+    "EntityType": {"S": "Room"},
+    "LocationId": {"S": "loc2"},
+    "Type": {"S": "апп 2/4"},
+    "Number": {"S": "302"},
+    "Note": {"S": "Apartment for 2-4 people"},
+    "IsActive": {"BOOL": true},
+    "GSI2PK": {"S": "LOCATION#loc2"},
+    "GSI2SK": {"S": "ROOM#302_h2"}
 }'
 
 # Load Reservations
