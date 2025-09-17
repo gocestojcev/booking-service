@@ -582,7 +582,7 @@ const CalendarComponent: React.FC = () => {
                               }
                             }}
                           >
-                            <div className="check-out-arrow">►</div>
+                            <div className="check-out-arrow"></div>
                           </div>
                           <div 
                             className="cell-half right-half booked"
@@ -594,7 +594,7 @@ const CalendarComponent: React.FC = () => {
                               }
                             }}
                           >
-                            <div className="check-in-arrow">◄</div>
+                            <div className="check-in-arrow"></div>
                           </div>
                         </>
                       ) : roomStatus.isCheckOutDay ? (
@@ -608,7 +608,7 @@ const CalendarComponent: React.FC = () => {
                               handleRoomClick(room.Number, date);
                             }}
                           >
-                            <div className="check-out-arrow">►</div>
+                            <div className="check-out-arrow"></div>
                           </div>
                           <div 
                             className="cell-half right-half available"
@@ -666,7 +666,7 @@ const CalendarComponent: React.FC = () => {
                               handleRoomClick(room.Number, date);
                             }}
                           >
-                            <div className="check-in-arrow">◄</div>
+                            <div className="check-in-arrow"></div>
                           </div>
                         </>
                       ) : (
