@@ -101,7 +101,7 @@ def read_reservations(hotel_id: str, start_date: str, end_date: str, current_use
 def create_reservation(hotel_id: str, reservation: Reservation, current_user: dict = Depends(get_authenticated_user)):
     try:
         logger.info(f"User {current_user.get('username')} creating reservation for hotel {hotel_id}")
-        reservation_data = reservation.dict()
+        reservation_data = reservation.model_dump()
         created_item = add_reservation(hotel_id, reservation_data)
         return {"message": "Reservation created successfully", "reservation": created_item}
     except ValueError as e:
@@ -116,7 +116,7 @@ def modify_reservation(hotel_id: str, reservation_id: str, reservation: Reservat
     try:
         logger.info(f"User {current_user.get('username')} updating reservation {reservation_id} for hotel {hotel_id}")
         logger.info(f"Received reservation data: {reservation}")
-        reservation_data = reservation.dict()
+        reservation_data = reservation.model_dump()
         logger.info(f"Converted to dict: {reservation_data}")
         logger.info(f"Final update data: {reservation_data}")
         updated_item = update_reservation(hotel_id, reservation_id, reservation_data)

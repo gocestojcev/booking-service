@@ -1,8 +1,0 @@
-{
-  "httpMethod": "GET",
-  "path": "/companies/comp1",
-  "headers": {},
-  "queryStringParameters": null,
-  "body": null,
-  "isBase64Encoded": false
-}

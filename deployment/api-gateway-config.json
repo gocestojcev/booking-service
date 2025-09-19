@@ -1,6 +1,0 @@
-﻿{
-    "Region":  "eu-central-1",
-    "ApiId":  "05omu2hiva",
-    "LambdaArn":  "arn:aws:lambda:eu-central-1:675316576819:function:booking-system-api",
-    "ApiUrl":  "https://05omu2hiva.execute-api.eu-central-1.amazonaws.com/prod"
-}

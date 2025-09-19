@@ -4,14 +4,14 @@
   "description": "Hotel Booking System - Full Stack Application",
   "scripts": {
     "startall": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
-    "start:backend": "cd backend && python -m uvicorn booking_system.api.v1.main:app --reload --host 0.0.0.0 --port 8000",
+    "start:backend": "cd backend && powershell -Command \"& { .\\venv312\\Scripts\\Activate.ps1; $env:PYTHONPATH = '.\\src'; python -m uvicorn booking_system.api.v1.main:app --reload --host 0.0.0.0 --port 8000 }\"",
     "start:frontend": "cd frontend && npm start",
     "install:all": "npm run install:backend && npm run install:frontend",
-    "install:backend": "cd backend && pip install -r requirements.txt",
+    "install:backend": "cd backend && powershell -Command \"& { .\\venv312\\Scripts\\Activate.ps1; pip install -r requirements.txt }\"",
     "install:frontend": "cd frontend && npm install",
     "build:frontend": "cd frontend && npm run build",
     "deploy:all": "cd terraform/scripts && .\\deploy-app.ps1",
-    "deploy:backend": "cd deployment && .\\deploy-lambda.ps1",
+    "deploy:backend": "cd deployment && .\\deploy-lambda-stable.ps1",
     "deploy:frontend": "npm run build:frontend && aws s3 sync frontend/build/ s3://booking-system-frontend-675316576819/ --profile private"
   },
   "devDependencies": {
