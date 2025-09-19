@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
-import { useCompany } from '../hooks/useCompany';
 import './Login.css';
 
 interface LoginProps {
@@ -10,7 +9,6 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const { login, isLoading, refreshUser } = useAuth();
-  const { companyName } = useCompany();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -155,8 +153,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>{companyName}</h1>
-          <p>Hotel Booking System</p>
+          <h1>Booking</h1>
         </div>
         
         <form onSubmit={handleSubmit} className="login-form">

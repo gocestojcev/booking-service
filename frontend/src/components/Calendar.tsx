@@ -111,13 +111,11 @@ const CalendarComponent: React.FC = () => {
     if (!selectedHotel) return;        
 
     try {
-      // Extract hotel ID from PK (e.g., "HOTEL#loc1" -> "loc1")
-      const hotelId = selectedHotel.includes('#') ? selectedHotel.split('#')[1] : selectedHotel;
       const startDate = moment(selectedDate).startOf('month').format('YYYY-MM-DD');     
       const endDate = moment(selectedDate).endOf('month').format('YYYY-MM-DD');
-      console.log('Loading reservations for hotel:', selectedHotel, 'extracted ID:', hotelId, 'from', startDate, 'to', endDate);
+      console.log('Loading reservations for hotel:', selectedHotel, 'from', startDate, 'to', endDate);
       
-      const reservationsData = await apiService.getReservations(hotelId, startDate, endDate);
+      const reservationsData = await apiService.getReservations(selectedHotel, startDate, endDate);
       console.log('Loaded reservations:', reservationsData);
       setReservations(reservationsData);
     } catch (error) {
@@ -180,9 +178,7 @@ const CalendarComponent: React.FC = () => {
 
   useEffect(() => {
     if (selectedHotel) {
-      // Extract hotel ID from PK (e.g., "HOTEL#loc1" -> "loc1")
-      const hotelId = selectedHotel.includes('#') ? selectedHotel.split('#')[1] : selectedHotel;
-      loadRooms(hotelId);
+      loadRooms(selectedHotel);
     }
   }, [selectedHotel, loadRooms]);
 
@@ -380,6 +376,9 @@ const CalendarComponent: React.FC = () => {
             Guests: reservation.Guests || [],
           },
         };
+        console.log('Creating edit event:', event);
+        console.log('Event ID:', event.id);
+        console.log('Event resource reservationId:', event.resource.reservationId);
         setSelectedEvent(event);
         setIsModalOpen(true);
       } else {
@@ -399,6 +398,9 @@ const CalendarComponent: React.FC = () => {
           status: 'Draft',
         },
       };
+      console.log('Creating new reservation event:', event);
+      console.log('Event ID:', event.id);
+      console.log('Event resource reservationId:', event.resource.reservationId);
       setSelectedEvent(event);
       setIsModalOpen(true);
     }
@@ -689,7 +691,7 @@ const CalendarComponent: React.FC = () => {
         onSave={handleReservationSave}
         event={selectedEvent}
         rooms={rooms}
-        hotelId={selectedHotel.includes('#') ? selectedHotel.split('#')[1] : selectedHotel}
+        hotelId={selectedHotel}
       />
     </div>
   );

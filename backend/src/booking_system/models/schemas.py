@@ -17,6 +17,17 @@ class Reservation(BaseModel):
     notes: str
     guests: List[Guest]
 
+class ReservationUpdate(BaseModel):
+    room_number: str
+    check_in_date: str
+    check_out_date: str
+    status: str
+    contact_name: str
+    contact_last_name: str
+    contact_phone: str
+    notes: str
+    guests: List[Guest]
+
 class Room(BaseModel):
     room_number: str
     room_description: str

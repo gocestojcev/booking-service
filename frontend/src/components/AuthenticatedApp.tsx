@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userContext } from '../services/userContext';
 import { authService } from '../services/authService';
-import { useCompany } from '../hooks/useCompany';
 import Login from './Login';
 import CalendarComponent from './Calendar';
 import Reports from './Reports';
@@ -10,7 +9,6 @@ import './AuthenticatedApp.css';
 
 const AuthenticatedApp: React.FC = () => {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
-  const { companyName } = useCompany();
   const [currentView, setCurrentView] = useState<'calendar' | 'reports'>('calendar');
 
   console.log('AuthenticatedApp render - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user);
@@ -52,7 +50,7 @@ const AuthenticatedApp: React.FC = () => {
     <div className="authenticated-app">
         <header className="app-header">
           <div className="header-content">
-            <h1 onClick={() => setCurrentView('calendar')} style={{ cursor: 'pointer' }}>{companyName}</h1>
+            <h1 onClick={() => setCurrentView('calendar')} style={{ cursor: 'pointer' }}>Booking System</h1>
             <div className="user-menu">
             <div className="user-dropdown">
               <button className="user-dropdown-toggle">

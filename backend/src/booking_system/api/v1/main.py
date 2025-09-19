@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from ...services.reservation_service import add_reservation, get_hotels, get_hotel, get_rooms, get_reservations, update_reservation, get_companies, get_company
-from ...models.schemas import Reservation
+from ...models.schemas import Reservation, ReservationUpdate
 from ...api.dependencies import get_authenticated_user
 from ...auth import initialize_cognito_auth
 import logging
@@ -112,14 +112,12 @@ def create_reservation(hotel_id: str, reservation: Reservation, current_user: di
         raise HTTPException(status_code=500, detail=f"Error creating reservation: {str(e)}")
 
 @app.put("/hotels/{hotel_id}/reservations/{reservation_id}")
-def modify_reservation(hotel_id: str, reservation_id: str, reservation: Reservation, current_user: dict = Depends(get_authenticated_user)):
+def modify_reservation(hotel_id: str, reservation_id: str, reservation: ReservationUpdate, current_user: dict = Depends(get_authenticated_user)):
     try:
         logger.info(f"User {current_user.get('username')} updating reservation {reservation_id} for hotel {hotel_id}")
         logger.info(f"Received reservation data: {reservation}")
         reservation_data = reservation.dict()
         logger.info(f"Converted to dict: {reservation_data}")
-        if 'reservation_id' in reservation_data:
-            del reservation_data['reservation_id']
         logger.info(f"Final update data: {reservation_data}")
         updated_item = update_reservation(hotel_id, reservation_id, reservation_data)
         if not updated_item:

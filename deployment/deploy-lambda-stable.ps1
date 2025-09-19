@@ -23,13 +23,9 @@ Copy-Item -Path "lambda_handler.py" -Destination "lambda-package/"
 Write-Host "Installing Python dependencies..." -ForegroundColor Blue
 Set-Location "lambda-package"
 
-# Use the stable requirements file
-Write-Host "Using stable requirements file..." -ForegroundColor Yellow
-pip install -r ../requirements-stable.txt --target . --no-deps
-
-# Install dependencies with their dependencies
-Write-Host "Installing dependencies with their dependencies..." -ForegroundColor Yellow
-pip install -r ../requirements-stable.txt --target .
+# Install dependencies
+Write-Host "Installing Python dependencies..." -ForegroundColor Yellow
+pip install -r ../backend/requirements.txt --target . --upgrade --force-reinstall
 
 Write-Host "Creating deployment package..." -ForegroundColor Blue
 Compress-Archive -Path * -DestinationPath "../booking-system-api-deployment.zip" -Force

@@ -88,24 +88,31 @@ def get_rooms(hotel_id: str):
 
 def get_reservations(hotel_id: str, start_date: str, end_date: str):
     try:
-        # Get all rooms for the hotel first
-        rooms = get_rooms(hotel_id)
-        room_ids = [room['PK'].replace('ROOM#', '') for room in rooms]  # Extract room ID from PK
-        
-        # Get reservations for all rooms in date range
+        # Get all reservations and filter by hotel and date range
+        # Use pagination to handle large datasets
         all_reservations = []
-        for room_id in room_ids:
-            # Query reservations by room using GSI4
-            response = table.query(
-                IndexName='GSI4',
-                KeyConditionExpression=Key('GSI4PK').eq(f'ROOM#{room_id}') & Key('GSI4SK').begins_with('RESERVATION#'),
-                FilterExpression="(CheckInDate >= :start AND CheckInDate <= :end) OR (CheckOutDate >= :start AND CheckOutDate <= :end)",
-                ExpressionAttributeValues={
+        last_evaluated_key = None
+        
+        while True:
+            scan_kwargs = {
+                'FilterExpression': "EntityType = :entity_type AND HotelId = :hotel_id AND ((CheckInDate >= :start AND CheckInDate <= :end) OR (CheckOutDate >= :start AND CheckOutDate <= :end))",
+                'ExpressionAttributeValues': {
+                    ":entity_type": "Reservation",
+                    ":hotel_id": hotel_id,
                     ":start": start_date,
                     ":end": end_date,
-                },
-            )
+                }
+            }
+            
+            if last_evaluated_key:
+                scan_kwargs['ExclusiveStartKey'] = last_evaluated_key
+                
+            response = table.scan(**scan_kwargs)
             all_reservations.extend(response.get('Items', []))
+            
+            last_evaluated_key = response.get('LastEvaluatedKey')
+            if not last_evaluated_key:
+                break
         
         # For each reservation, get the guest data
         for reservation in all_reservations:
@@ -142,14 +149,15 @@ def check_room_availability(hotel_id: str, room_id: str, check_in_date: str, che
     Returns True if available, False if there's a conflict
     """
     try:
-        # Query reservations for this room using GSI4
+        # Query reservations for this room using GSI4, but only for the specific hotel
         response = table.query(
             IndexName='GSI4',
             KeyConditionExpression=Key('GSI4PK').eq(f'ROOM#{room_id}') & Key('GSI4SK').begins_with('RESERVATION#'),
-            FilterExpression="CheckInDate < :check_out AND CheckOutDate > :check_in",
+            FilterExpression="CheckInDate < :check_out AND CheckOutDate > :check_in AND HotelId = :hotel_id",
             ExpressionAttributeValues={
                 ":check_in": check_in_date,
                 ":check_out": check_out_date,
+                ":hotel_id": hotel_id,
             },
         )
         
@@ -187,6 +195,7 @@ def add_reservation(hotel_id: str, reservation: dict):
             "PK": f"RESERVATION#{reservation['reservation_id']}",
             "SK": "METADATA",
             "EntityType": "Reservation",
+            "HotelId": hotel_id,
             "RoomId": reservation['room_number'],
             "CheckInDate": reservation['check_in_date'],
             "CheckOutDate": reservation['check_out_date'],
@@ -269,6 +278,7 @@ def update_reservation(hotel_id: str, reservation_id: str, updates: dict):
         
         update_expressions = []
         expression_values = {}
+        expression_names = {}
         
         for k, v in updates.items():
             if k in ["PK", "SK", "reservation_id", "EntityType"]:
@@ -276,7 +286,14 @@ def update_reservation(hotel_id: str, reservation_id: str, updates: dict):
             
             # Use mapped field name if available, otherwise use original
             db_field = field_mapping.get(k, k)
-            update_expressions.append(f"{db_field} = :{k}")
+            
+            # Handle reserved keywords by using expression attribute names
+            if db_field in ["status", "name", "date", "type", "key", "value"]:
+                expression_names[f"#{db_field}"] = db_field
+                update_expressions.append(f"#{db_field} = :{k}")
+            else:
+                update_expressions.append(f"{db_field} = :{k}")
+            
             expression_values[f":{k}"] = v
 
         if not update_expressions:
@@ -286,20 +303,28 @@ def update_reservation(hotel_id: str, reservation_id: str, updates: dict):
         # Add metadata updates
         update_expressions.append("ModifiedBy = :modified_by")
         update_expressions.append("ModifiedOn = :modified_on")
+        update_expressions.append("HotelId = :hotel_id")
         expression_values[":modified_by"] = user_id
         expression_values[":modified_on"] = datetime.now().isoformat()
+        expression_values[":hotel_id"] = hotel_id
 
         update_expression = "SET " + ", ".join(update_expressions)
 
-        response = table.update_item(
-            Key={
+        update_kwargs = {
+            "Key": {
                 "PK": f"RESERVATION#{reservation_id}",
                 "SK": "METADATA"
             },
-            UpdateExpression=update_expression,
-            ExpressionAttributeValues=expression_values,
-            ReturnValues="ALL_NEW"
-        )
+            "UpdateExpression": update_expression,
+            "ExpressionAttributeValues": expression_values,
+            "ReturnValues": "ALL_NEW"
+        }
+        
+        # Add expression attribute names if we have any reserved keywords
+        if expression_names:
+            update_kwargs["ExpressionAttributeNames"] = expression_names
+        
+        response = table.update_item(**update_kwargs)
 
         logger.info(f"Successfully updated reservation {reservation_id} for hotel {hotel_id}")
         return response.get('Attributes', {})

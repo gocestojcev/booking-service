@@ -143,6 +143,10 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
         guests: guests.filter(guest => guest.first_name.trim() !== '' || guest.last_name.trim() !== ''),
       };
 
+      console.log('Event ID:', event.id);
+      console.log('Event resource:', event.resource);
+      console.log('Event resource reservationId:', event.resource?.reservationId);
+      
       if (event.id === 'new') {
         // Generate a unique reservation ID
         reservationData.reservation_id = `res_${Date.now()}`;
