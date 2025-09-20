@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userContext } from '../services/userContext';
 import { authService } from '../services/authService';
+import { apiService, Hotel } from '../services/api';
 import Login from './Login';
 import CalendarComponent from './Calendar';
 import Reports from './Reports';
@@ -10,8 +11,35 @@ import './AuthenticatedApp.css';
 const AuthenticatedApp: React.FC = () => {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const [currentView, setCurrentView] = useState<'calendar' | 'reports'>('calendar');
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [selectedHotel, setSelectedHotel] = useState<string>('');
 
   console.log('AuthenticatedApp render - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user);
+
+  // Load hotels on component mount
+  useEffect(() => {
+    const loadHotels = async () => {
+      try {
+        console.log('Loading hotels...');
+        const hotelsData = await apiService.getHotels();
+        console.log('Loaded hotels:', hotelsData);
+        setHotels(hotelsData);
+        
+        if (hotelsData.length > 0) {
+          const firstHotel = hotelsData[0];
+          const hotelId = firstHotel.PK.replace('LOCATION#', '');
+          console.log('Setting selected hotel:', hotelId);
+          setSelectedHotel(hotelId);
+        }
+      } catch (error) {
+        console.error('Error loading hotels:', error);
+      }
+    };
+
+    if (isAuthenticated) {
+      loadHotels();
+    }
+  }, [isAuthenticated]);
 
   const handleLogout = async () => {
     try {
@@ -50,7 +78,24 @@ const AuthenticatedApp: React.FC = () => {
     <div className="authenticated-app">
         <header className="app-header">
           <div className="header-content">
-            <h1 onClick={() => setCurrentView('calendar')} style={{ cursor: 'pointer' }}>Booking System</h1>
+            <div className="header-left">
+              {currentView === 'calendar' && hotels.length > 0 && (
+                <div className="header-hotel-selector">
+                  <select
+                    id="header-hotel-select"
+                    value={selectedHotel}
+                    onChange={(e) => setSelectedHotel(e.target.value)}
+                    className="header-hotel-dropdown"
+                  >
+                    {hotels.map((hotel) => (
+                      <option key={hotel.PK} value={hotel.PK.replace('LOCATION#', '')}>
+                        {hotel.Name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
             <div className="user-menu">
             <div className="user-dropdown">
               <button className="user-dropdown-toggle">
@@ -72,7 +117,15 @@ const AuthenticatedApp: React.FC = () => {
         </div>
       </header>
       <main className="app-main">
-        {currentView === 'calendar' ? <CalendarComponent /> : <Reports />}
+        {currentView === 'calendar' ? (
+          <CalendarComponent 
+            selectedHotel={selectedHotel}
+            onHotelChange={setSelectedHotel}
+            hotels={hotels}
+          />
+        ) : (
+          <Reports />
+        )}
       </main>
     </div>
   );

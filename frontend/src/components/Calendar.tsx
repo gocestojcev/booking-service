@@ -47,11 +47,15 @@ const extractReservationId = (pk: string): string => {
   return pk.replace('RESERVATION#', '');
 };
 
-const CalendarComponent: React.FC = () => {
-  const [hotels, setHotels] = useState<Hotel[]>([]);
+interface CalendarComponentProps {
+  selectedHotel: string;
+  onHotelChange: (hotelId: string) => void;
+  hotels: Hotel[];
+}
+
+const CalendarComponent: React.FC<CalendarComponentProps> = ({ selectedHotel, onHotelChange, hotels }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<ReservationResponse[]>([]);
-  const [selectedHotel, setSelectedHotel] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -74,19 +78,6 @@ const CalendarComponent: React.FC = () => {
       const companyData = await apiService.getCompany(currentUser.companyId);
       console.log('Loaded company:', companyData);
       companyContext.setCurrentCompany(companyData);
-      
-      // Load hotels
-      console.log('Loading hotels...');
-      const hotelsData = await apiService.getHotels();
-      console.log('Loaded hotels:', hotelsData);
-      setHotels(hotelsData);
-      
-      if (hotelsData.length > 0) {
-        const firstHotel = hotelsData[0];
-        const hotelId = firstHotel.PK.replace('LOCATION#', '');
-        console.log('Setting selected hotel:', hotelId);
-        setSelectedHotel(hotelId);
-      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -113,10 +104,17 @@ const CalendarComponent: React.FC = () => {
     try {
       const startDate = moment(selectedDate).startOf('month').format('YYYY-MM-DD');     
       const endDate = moment(selectedDate).endOf('month').format('YYYY-MM-DD');
-      console.log('Loading reservations for hotel:', selectedHotel, 'from', startDate, 'to', endDate);
+      console.log('🔄 Loading reservations for hotel:', selectedHotel, 'from', startDate, 'to', endDate);
       
       const reservationsData = await apiService.getReservations(selectedHotel, startDate, endDate);
-      console.log('Loaded reservations:', reservationsData);
+      console.log('📋 Loaded reservations:', reservationsData.length, 'reservations');
+      console.log('📋 Reservation details:', reservationsData.map(r => ({ 
+        id: r.PK, 
+        room: r.RoomId, 
+        isDeleted: r.IsDeleted,
+        deletedBy: r.DeletedBy,
+        deletedOn: r.DeletedOn
+      })));
       setReservations(reservationsData);
     } catch (error) {
       console.error('Error loading reservations:', error);
@@ -449,6 +447,30 @@ const CalendarComponent: React.FC = () => {
     loadReservations(); // Refresh the calendar
   };
 
+  const handleReservationDelete = async (reservationId: string) => {
+    if (!reservationId || reservationId === 'new') {
+      console.error('Cannot delete reservation: invalid reservation ID');
+      return;
+    }
+
+    if (!selectedHotel) {
+      console.error('Cannot delete reservation: no hotel selected');
+      return;
+    }
+
+    try {
+      console.log('🗑️ Deleting reservation:', reservationId, 'for hotel:', selectedHotel);
+      const response = await apiService.deleteReservation(selectedHotel, reservationId);
+      console.log('✅ Reservation deleted successfully:', response);
+      handleModalClose();
+      console.log('🔄 Refreshing calendar...');
+      loadReservations(); // Refresh the calendar
+    } catch (error) {
+      console.error('❌ Error deleting reservation:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+
 
   const getRoomDisplayName = (room: Room) => {
     // Extract floor information from room number
@@ -487,38 +509,23 @@ const CalendarComponent: React.FC = () => {
 
   return (
     <div className="room-calendar-container">
-      <div className="calendar-controls">
-        <div className="date-navigation">
-          <button onClick={() => setSelectedDate(moment(selectedDate).subtract(1, 'day').toDate())}>
-            ←
-          </button>
-          <input
-            type="date"
-            value={moment(selectedDate).format('YYYY-MM-DD')}
-            onChange={(e) => setSelectedDate(new Date(e.target.value))}
-            className="date-picker"
-          />
-          <button onClick={() => setSelectedDate(moment(selectedDate).add(1, 'day').toDate())}>
-            →
-          </button>
-        </div>
-      </div>
-
       <div className="room-calendar-grid">
         <div className="room-list">
           <div className="room-header">
-            <select
-              id="hotel-select"
-              value={selectedHotel}
-              onChange={(e) => setSelectedHotel(e.target.value)}
-              className="hotel-dropdown"
-            >
-              {hotels.map((hotel) => (
-                <option key={hotel.PK} value={hotel.PK.replace('LOCATION#', '')}>
-                  {hotel.Name}
-                </option>
-              ))}
-            </select>
+            <div className="date-navigation">
+              <button onClick={() => setSelectedDate(moment(selectedDate).subtract(1, 'day').toDate())}>
+                ←
+              </button>
+              <input
+                type="date"
+                value={moment(selectedDate).format('YYYY-MM-DD')}
+                onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                className="date-picker"
+              />
+              <button onClick={() => setSelectedDate(moment(selectedDate).add(1, 'day').toDate())}>
+                →
+              </button>
+            </div>
           </div>
           {rooms.map((room) => (
             <div 
@@ -689,6 +696,7 @@ const CalendarComponent: React.FC = () => {
         isOpen={isModalOpen}
         onClose={handleModalClose}
         onSave={handleReservationSave}
+        onDelete={handleReservationDelete}
         event={selectedEvent}
         rooms={rooms}
         hotelId={selectedHotel}

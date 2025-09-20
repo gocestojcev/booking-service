@@ -95,7 +95,7 @@ def get_reservations(hotel_id: str, start_date: str, end_date: str):
         
         while True:
             scan_kwargs = {
-                'FilterExpression': "EntityType = :entity_type AND HotelId = :hotel_id AND (attribute_not_exists(IsDeleted) OR IsDeleted = :is_deleted) AND ((CheckInDate >= :start AND CheckInDate <= :end) OR (CheckOutDate >= :start AND CheckOutDate <= :end))",
+                'FilterExpression': "EntityType = :entity_type AND HotelId = :hotel_id AND ((CheckInDate >= :start AND CheckInDate <= :end) OR (CheckOutDate >= :start AND CheckOutDate <= :end)) AND (attribute_not_exists(IsDeleted) OR IsDeleted = :is_deleted)",
                 'ExpressionAttributeValues': {
                     ":entity_type": "Reservation",
                     ":hotel_id": hotel_id,
@@ -150,6 +150,8 @@ def check_room_availability(hotel_id: str, room_id: str, check_in_date: str, che
     Returns True if available, False if there's a conflict
     """
     try:
+        print("DEBUG: Starting room availability check")
+        
         # Query reservations for this room using GSI4, but only for the specific hotel
         # Exclude deleted reservations from availability check
         response = table.query(
@@ -165,6 +167,7 @@ def check_room_availability(hotel_id: str, room_id: str, check_in_date: str, che
         )
         
         conflicting_reservations = response.get('Items', [])
+        print(f"DEBUG: Found {len(conflicting_reservations)} conflicting reservations")
         
         # If we're updating an existing reservation, exclude it from conflicts
         if exclude_reservation_id:
@@ -172,26 +175,37 @@ def check_room_availability(hotel_id: str, room_id: str, check_in_date: str, che
                 res for res in conflicting_reservations 
                 if res['PK'] != f'RESERVATION#{exclude_reservation_id}'
             ]
+            print(f"DEBUG: After excluding {exclude_reservation_id}: {len(conflicting_reservations)} conflicts remain")
         
         is_available = len(conflicting_reservations) == 0
+        print(f"DEBUG: Room {room_id} availability: {'AVAILABLE' if is_available else 'NOT AVAILABLE'}")
         return is_available
         
     except Exception as e:
+        print(f"DEBUG: Error in check_room_availability: {str(e)}")
         logger.error(f"Error checking room availability: {str(e)}", exc_info=True)
         return False
 
 def add_reservation(hotel_id: str, reservation: dict):
     try:
+        print("DEBUG: Starting add_reservation")
+        print(f"DEBUG: Room: {reservation.get('room_number')}, Check-in: {reservation.get('check_in_date')}, Check-out: {reservation.get('check_out_date')}")
+        
         # Validate room availability
+        print("DEBUG: Checking room availability")
         availability_result = check_room_availability(
             hotel_id, 
             reservation['room_number'], 
             reservation['check_in_date'], 
             reservation['check_out_date']
         )
+        print(f"DEBUG: Availability result: {availability_result}")
         
         if not availability_result:
+            print("DEBUG: Room is NOT available - raising error")
             raise ValueError(f"Room {reservation['room_number']} is not available for the selected dates")
+        else:
+            print("DEBUG: Room is available - continuing")
         
         # Set default user since auth is disabled
         user_id = 'system'
@@ -339,26 +353,28 @@ def update_reservation(hotel_id: str, reservation_id: str, updates: dict):
         raise
 
 def soft_delete_reservation(reservation_id: str, deleted_by: str):
-    """Soft delete a reservation by setting IsDeleted=True"""
+    """Soft delete a reservation by setting IsDeleted=True, DeletedOn=now, DeletedBy=user"""
     try:
-        from datetime import datetime
+        current_time = datetime.utcnow().isoformat()
         
-        # Update the reservation to mark it as deleted
+        # Ensure we have the full PK format
+        full_pk = reservation_id if reservation_id.startswith('RESERVATION#') else f'RESERVATION#{reservation_id}'
+        
         response = table.update_item(
             Key={
-                'PK': f'RESERVATION#{reservation_id}',
+                'PK': full_pk,
                 'SK': 'METADATA'
             },
             UpdateExpression="SET IsDeleted = :is_deleted, DeletedOn = :deleted_on, DeletedBy = :deleted_by",
             ExpressionAttributeValues={
-                ':is_deleted': True,
-                ':deleted_on': datetime.utcnow().isoformat(),
-                ':deleted_by': deleted_by
+                ":is_deleted": True,
+                ":deleted_on": current_time,
+                ":deleted_by": deleted_by
             },
             ReturnValues="ALL_NEW"
         )
         
-        logger.info(f"Successfully soft deleted reservation {reservation_id} by {deleted_by}")
+        logger.info(f"Successfully soft deleted reservation {full_pk} by {deleted_by}")
         return response.get('Attributes', {})
     except Exception as e:
         logger.error(f"Error soft deleting reservation {reservation_id}: {str(e)}", exc_info=True)
@@ -367,6 +383,7 @@ def soft_delete_reservation(reservation_id: str, deleted_by: str):
 def get_deleted_reservations(hotel_id: str, start_date: str, end_date: str):
     """Get deleted reservations for a hotel within a deletion date range"""
     try:
+        # Convert date strings to datetime objects for proper range filtering
         from datetime import datetime
         
         # Create start and end datetime strings for the range

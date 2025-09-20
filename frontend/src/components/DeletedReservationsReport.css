@@ -1,4 +1,4 @@
-.checkin-report {
+.deleted-reservations-report {
   padding: 0;
 }
 
@@ -90,24 +90,6 @@
 
 .report-actions button:first-child:hover:not(:disabled) {
   background: #218838;
-}
-
-.report-actions button:nth-child(2) {
-  background: #17a2b8;
-  color: white;
-}
-
-.report-actions button:nth-child(2):hover:not(:disabled) {
-  background: #138496;
-}
-
-.report-actions button:last-child {
-  background: #17a2b8;
-  color: white;
-}
-
-.report-actions button:last-child:hover:not(:disabled) {
-  background: #138496;
 }
 
 .report-actions button:disabled {
@@ -242,7 +224,7 @@
     display: none !important;
   }
   
-  .checkin-report {
+  .deleted-reservations-report {
     padding: 0 !important;
   }
   

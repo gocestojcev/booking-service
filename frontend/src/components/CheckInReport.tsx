@@ -88,18 +88,14 @@ const CheckInReport: React.FC = () => {
     loadHotels();
   }, []);
 
-  useEffect(() => {
-    if (selectedHotel) {
-      loadCheckIns();
-    }
-  }, [selectedDate, selectedHotel]);
-
   const handleDateChange = (value: string) => {
     setSelectedDate(value);
+    setCheckIns([]); // Clear data when filter changes
   };
 
   const handleHotelChange = (value: string) => {
     setSelectedHotel(value);
+    setCheckIns([]); // Clear data when filter changes
   };
 
   const exportToCSV = () => {
@@ -136,24 +132,23 @@ const CheckInReport: React.FC = () => {
       <div className="report-controls">
         <div className="filters">
           <div className="filter-group">
-            <label>
-              Hotel:
-              <select
-                value={selectedHotel}
-                onChange={(e) => handleHotelChange(e.target.value)}
-                disabled={hotels.length === 0}
-              >
-                <option value="">Select Hotel</option>
-                {hotels.map((hotel) => (
-                  <option key={hotel.PK} value={hotel.PK}>
-                    {hotel.Name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <label htmlFor="hotel-select">Hotel:</label>
+            <select
+              id="hotel-select"
+              value={selectedHotel}
+              onChange={(e) => handleHotelChange(e.target.value)}
+              disabled={hotels.length === 0}
+            >
+              <option value="">Select Hotel</option>
+              {hotels.map((hotel) => (
+                <option key={hotel.PK} value={hotel.PK}>
+                  {hotel.Name}
+                </option>
+              ))}
+            </select>
           </div>
           
-          <div className="filter-group">
+          <div className="date-range">
             <label>
               Date:
               <input

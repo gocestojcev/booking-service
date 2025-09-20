@@ -8,6 +8,7 @@ interface ReservationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
+  onDelete?: (reservationId: string) => void;
   event: any;
   rooms: Room[];
   hotelId: string;
@@ -17,6 +18,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onDelete,
   event,
   rooms,
   hotelId,
@@ -176,18 +178,15 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!event || event.id === 'new') return;
+    if (!event || event.id === 'new' || !onDelete) return;
 
     if (window.confirm('Are you sure you want to delete this reservation?')) {
       setLoading(true);
       try {
-        // This would need to be implemented in the API
-        // await apiService.deleteReservation(hotelId, event.resource.reservationId);
-        onSave();
+        await onDelete(event.resource.reservationId);
       } catch (err) {
         setError('Failed to delete reservation. Please try again.');
         console.error('Error deleting reservation:', err);
-      } finally {
         setLoading(false);
       }
     }

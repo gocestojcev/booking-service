@@ -108,6 +108,9 @@ export interface Reservation {
   contact_phone: string;
   notes: string;
   guests: Guest[];
+  is_deleted?: boolean;
+  deleted_on?: string;
+  deleted_by?: string;
 }
 
 export interface ReservationResponse {
@@ -129,6 +132,8 @@ export interface ReservationResponse {
   CreatedOn: string;
   ModifiedOn: string;
   IsDeleted: boolean;
+  DeletedOn?: string;
+  DeletedBy?: string;
   GSI3PK: string;
   GSI3SK: string;
   GSI4PK: string;
@@ -186,6 +191,21 @@ export const apiService = {
   updateReservation: async (hotelId: string, reservationId: string, reservation: Partial<Reservation>): Promise<ReservationResponse> => {
     const response = await api.put(`/hotels/${hotelId}/reservations/${reservationId}`, reservation);
     return response.data.reservation;
+  },
+
+  deleteReservation: async (hotelId: string, reservationId: string): Promise<ReservationResponse> => {
+    const response = await api.delete(`/hotels/${hotelId}/reservations/${reservationId}`);
+    return response.data.reservation;
+  },
+
+  getDeletedReservations: async (hotelId: string, startDate: string, endDate: string): Promise<ReservationResponse[]> => {
+    const response = await api.get(`/hotels/${hotelId}/reservations/deleted`, {
+      params: {
+        start_date: startDate,
+        end_date: endDate,
+      },
+    });
+    return response.data.deleted_reservations;
   },
 };
 

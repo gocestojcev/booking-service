@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import CheckInReport from './CheckInReport';
 import CheckOutReport from './CheckOutReport';
+import DeletedReservationsReport from './DeletedReservationsReport';
 import './Reports.css';
 
-type ReportType = 'checkin' | 'checkout';
+type ReportType = 'checkin' | 'checkout' | 'deleted';
 
 const Reports: React.FC = () => {
   const [activeReport, setActiveReport] = useState<ReportType>('checkin');
@@ -14,6 +15,8 @@ const Reports: React.FC = () => {
         return <CheckInReport />;
       case 'checkout':
         return <CheckOutReport />;
+      case 'deleted':
+        return <DeletedReservationsReport />;
       default:
         return <CheckInReport />;
     }
@@ -35,6 +38,12 @@ const Reports: React.FC = () => {
             onClick={() => setActiveReport('checkout')}
           >
             Check-out Report
+          </button>
+          <button
+            className={`report-tab ${activeReport === 'deleted' ? 'active' : ''}`}
+            onClick={() => setActiveReport('deleted')}
+          >
+            Deleted Reservations
           </button>
         </div>
       </div>

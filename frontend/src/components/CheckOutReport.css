@@ -32,7 +32,8 @@
   align-items: center;
 }
 
-.date-range label {
+.date-range label,
+.filter-group label {
   display: flex;
   flex-direction: column;
   gap: 5px;

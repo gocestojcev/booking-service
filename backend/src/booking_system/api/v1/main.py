@@ -1,8 +1,8 @@
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from ...services.reservation_service import add_reservation, get_hotels, get_hotel, get_rooms, get_reservations, update_reservation, get_companies, get_company
-from ...models.schemas import Reservation, ReservationUpdate
+from ...services.reservation_service import add_reservation, get_hotels, get_hotel, get_rooms, get_reservations, update_reservation, get_companies, get_company, soft_delete_reservation, get_deleted_reservations
+from ...models.schemas import Reservation, ReservationUpdate, ReservationSoftDelete
 from ...api.dependencies import get_authenticated_user
 from ...auth import initialize_cognito_auth
 import logging
@@ -130,6 +130,28 @@ def modify_reservation(hotel_id: str, reservation_id: str, reservation: Reservat
     except Exception as e:
         logger.error(f"Error updating reservation {reservation_id} for hotel {hotel_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error updating reservation: {str(e)}")
+
+@app.delete("/hotels/{hotel_id}/reservations/{reservation_id}")
+def delete_reservation(hotel_id: str, reservation_id: str, current_user: dict = Depends(get_authenticated_user)):
+    """Soft delete a reservation"""
+    try:
+        logger.info(f"User {current_user.get('username')} soft deleting reservation {reservation_id} for hotel {hotel_id}")
+        deleted_item = soft_delete_reservation(reservation_id, current_user.get('username', 'unknown'))
+        return {"message": "Reservation deleted successfully", "reservation": deleted_item}
+    except Exception as e:
+        logger.error(f"Error soft deleting reservation {reservation_id} for hotel {hotel_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error deleting reservation: {str(e)}")
+
+@app.get("/hotels/{hotel_id}/reservations/deleted")
+def get_deleted_reservations_endpoint(hotel_id: str, start_date: str, end_date: str, current_user: dict = Depends(get_authenticated_user)):
+    """Get deleted reservations for a hotel within a date range"""
+    try:
+        logger.info(f"User {current_user.get('username')} accessing deleted reservations for hotel {hotel_id}")
+        deleted_reservations = get_deleted_reservations(hotel_id, start_date, end_date)
+        return {"deleted_reservations": deleted_reservations}
+    except Exception as e:
+        logger.error(f"Error retrieving deleted reservations for hotel {hotel_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error retrieving deleted reservations: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
